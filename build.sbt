@@ -24,7 +24,7 @@ ThisBuild / scalacOptions ++= Seq(
 val Deps = {
   object deps {
     val specs2_core = "org.specs2" %% "specs2-core" % "5.2.0" % "test"
-    val turbolift = "io.github.marcinzh" %% "turbolift-core" % "0.56.0"
+    val turbolift = "io.github.marcinzh" %% "turbolift-core" % "0.59.0-SNAPSHOT"
     val betterFiles = ("com.github.pathikrit" %% "better-files" % "3.9.1").cross(CrossVersion.for3Use2_13)
   }
   deps
