@@ -1,8 +1,8 @@
 package beam
-import turbolift.{!!, Signature, Effect}
+import turbolift.!!
 import turbolift.Extensions._
 import turbolift.effects.NonDet
-import beam.dsl.StreamEffect
+import beam.effects.StreamEffect
 import beam.protocol._
 
 
@@ -17,7 +17,7 @@ object Stream:
   def apply[A](as: A*): Stream[A, Any] = from(as)
   def empty[A]: Stream[A, Any] = new Stream(PullUp.alwaysStop)
 
-  def compile[O, U](body: (fx: StreamEffect[O]) => Unit !! (U & fx.type)): Stream[O, U] =
+  def coroutine[O, U](body: (fx: StreamEffect[O]) => Unit !! (U & fx.type)): Stream[O, U] =
     case object Fx extends StreamEffect[O]
     val down = body(Fx).handleWith[U](Fx.handler[U])
     new Stream(PullUp.invert(down))
@@ -25,7 +25,9 @@ object Stream:
   def from[A](as: Iterable[A]): Stream[A, Any] = new Stream(pullFromIterator(as.iterator))
   def from[A](as: Iterator[A]): Stream[A, NonDet] = new Stream(pullFromIterator(as))
 
-  private def pullFromIterator[A](it: Iterator[A])(more: Boolean): PullDown[A, Any] !! Any =
-    if more && it.hasNext
-    then PullDown.Emit(it.next(), pullFromIterator(it)).pure_!!
-    else PullDown.stopPure
+  private def pullFromIterator[A](it: Iterator[A]): PullUp[A, Any] =
+    def loop(more: Boolean): PullDown[A, Any] !! Any =
+      if more && it.hasNext
+      then PullDown.Emit(it.next(), loop).pure_!!
+      else PullDown.stopPure
+    loop

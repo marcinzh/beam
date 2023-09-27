@@ -2,7 +2,7 @@ package beam
 import turbolift.!!
 import turbolift.Extensions._
 import turbolift.effects._
-import beam.dsl.PipeEffect
+import beam.effects.PipeEffect
 import beam.protocol._
 
 
@@ -18,7 +18,7 @@ final class Pipe[I, O, U](val fun: PullUp[I, U] => PullUp[O, U]):
 
 
 object Pipe:
-  def compile[I, O, U](body: (fx: PipeEffect[I, O]) => Unit !! (U & fx.type)): Pipe[I, O, U] =
+  def coroutine[I, O, U](body: (fx: PipeEffect[I, O]) => Unit !! (U & fx.type)): Pipe[I, O, U] =
     case object Fx extends PipeEffect[I, O]
     new Pipe(up =>
       val down = body(Fx).handleWith[U](Fx.handler[U](up))

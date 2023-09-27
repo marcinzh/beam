@@ -1,5 +1,5 @@
 ThisBuild / organization := "io.github.marcinzh"
-ThisBuild / version := "0.1.0"
+ThisBuild / version := "0.2.0"
 ThisBuild / scalaVersion := "3.3.1"
 ThisBuild / crossScalaVersions := Seq(scalaVersion.value)
 
@@ -11,6 +11,7 @@ ThisBuild / scalacOptions ++= Seq(
   "-deprecation",
   "-feature",
   "-unchecked",
+  "-Wnonunit-statement",
   "-Xfatal-warnings",
   "-Ykind-projector:underscores",
   Seq(

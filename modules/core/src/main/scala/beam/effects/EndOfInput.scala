@@ -1,4 +1,4 @@
-package beam.dsl
+package beam.effects
 
 
 case object EndOfInput

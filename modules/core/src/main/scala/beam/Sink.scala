@@ -1,7 +1,7 @@
 package beam
 import turbolift.!!
 import turbolift.Extensions._
-import beam.dsl.SinkEffect
+import beam.effects.SinkEffect
 import beam.protocol._
 
 
@@ -13,7 +13,7 @@ final class Sink[I, R, U](val fun: PullUp[I, U] => R !! U):
 
 
 object Sink:
-  def compile[I, R, U](body: (fx: SinkEffect[I, R]) => R !! (U & fx.type)): Sink[I, R, U] =
+  def coroutine[I, R, U](body: (fx: SinkEffect[I, R]) => R !! (U & fx.type)): Sink[I, R, U] =
     case object Fx extends SinkEffect[I, R]
     new Sink(up => body(Fx).handleWith(Fx.handler[U](up)))
 

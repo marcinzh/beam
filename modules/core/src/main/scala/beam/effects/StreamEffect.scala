@@ -1,4 +1,4 @@
-package beam.dsl
+package beam.effects
 import turbolift.{!!, Signature, Effect}
 import turbolift.Extensions._
 import beam.protocol._
