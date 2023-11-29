@@ -1,7 +1,8 @@
 package beam.effects
 import turbolift.{!!, Signature, Effect}
 import turbolift.Extensions._
-import beam.protocol._
+import beam.internals.Step
+import beam.Stream
 
 
 sealed trait StreamSignature[O] extends Signature:
@@ -14,12 +15,15 @@ trait StreamEffect[O] extends Effect[StreamSignature[O]] with StreamSignature[O]
   final override def exit: Nothing !! this.type = perform(_.exit)
 
 
-  final def handler[U]: ThisHandler[[_] =>> Unit, [_] =>> PullDown[O, U], Any] =
-    new Free.Const.Stateless[Unit, [_] =>> PullDown[O, U]] with Sequential with StreamSignature[O]:
-      override def onReturn[A](a: Unit) = PullDown.stopPure
+  final def handler[U]: ThisHandler[[_] =>> Unit, [_] =>> Stream[O, U], Any] =
+    new impl.Const.Stateless[Unit, [_] =>> Step[O, U], Any] with impl.Sequential with StreamSignature[O]:
+      override def onReturn(aa: Unit): Step[O, U] !! Any = Step.endPure
 
-      override def write(value: O): Unit !@! ThisEffect = k => PullDown.Emit(value, PullUp.invert(k(()))).pure_!!
+      override def write(value: O): Unit !@! ThisEffect =
+        k => Step.Emit(value, k(())).pure_!!
 
-      override def exit: Nothing !@! ThisEffect = k => PullDown.stopPure
+      override def exit: Nothing !@! ThisEffect =
+        k => Step.endPure
 
     .toHandler
+    .mapK([_] => (step: Step[O, U]) => Stream.wrap(step.pure_!!))

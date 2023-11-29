@@ -1,0 +1,264 @@
+package beam.internals
+import scala.math.Numeric
+import turbolift.!!
+import turbolift.Extensions._
+import Step.Syntax._
+
+
+private[beam] object StepOps:
+  type NextStep[A, U] = Step[A, U] !! U
+
+
+  //========== construct ==========
+
+
+  def singleton[A](a: A): NextStep[A, Any] = a ::! Step.endPure
+  def singleton_!![A, U](aa: A !! U): NextStep[A, U] = aa.flatMap(_ ::! Step.endPure)
+
+
+  def unfold[A, S](s: S)(f: S => Option[(A, S)]): NextStep[A, Any] =
+    def loop(s: S): NextStep[A, Any] =
+      f(s) match
+        case Some((a, s2)) => a ::!? loop(s2)
+        case None => Step.endPure
+    loop(s)
+
+
+  def unfold_!![A, S, U](s: S)(f: S => Option[(A, S)] !! U): NextStep[A, U] =
+    def loop(s: S): NextStep[A, U] =
+      f(s).flatMap:
+        case Some((a, s2)) => a ::! loop(s2)
+        case None => Step.endPure
+    loop(s)
+
+
+  def repeat[A](a: A): NextStep[A, Any] = a ::!? repeat(a)
+  def repeat_!![A, U](aa: A !! U): NextStep[A, U] = aa.flatMap(_ ::! repeat_!!(aa))
+  def iterate[A](a: A)(f: A => A): NextStep[A, Any] = a ::!? iterate(f(a))(f)
+  def iterate_!![A, U](a: A)(f: A => A !! U): NextStep[A, U] = a ::! f(a).flatMap(iterate_!!(_)(f))
+
+
+  def fromIterator[A](it: Iterator[A]): NextStep[A, Any] =
+    def loop(): NextStep[A, Any] =
+      !!.impure:
+        if it.hasNext then
+          Step.Emit(it.next(), loop())
+        else
+          Step.End
+    loop()
+
+
+  def range[A: Numeric](start: A, endExclusive: A, step: A): NextStep[A, Any] =
+    val N = summon[Numeric[A]]
+    def loop(a: A): NextStep[A, Any] =
+      if N.lt(a, endExclusive) then
+        a ::! loop(N.plus(a, step))
+      else
+        Step.endPure
+    loop(start)
+
+
+  //========== add & remove ==========
+
+
+  def append[A, B >: A, U, V <: U](thiz: NextStep[A, U], that: NextStep[B, V]): NextStep[B, V] =
+    thiz.flatMap:
+      case Step.Emit(a, nx) => a ::! append(nx, that)
+      case Step.End => that
+
+
+  def head[A, U](thiz: NextStep[A, U]): Option[A] !! U =
+    thiz.flatMap:
+      case Step.Emit(a, _) => Some(a).pure_!!
+      case Step.End => !!.none
+
+
+  def tail[A, U](thiz: NextStep[A, U]): NextStep[A, U] =
+    thiz.decons: (_, nx) =>
+      nx
+
+
+  def take[A, U](thiz: NextStep[A, U], count: Long): NextStep[A, U] =
+    if count > 0 then
+      thiz.decons: (a, nx) =>
+        a ::! take(nx, count - 1)
+    else
+      Step.endPure
+
+
+  def drop[A, U](thiz: NextStep[A, U], count: Long): NextStep[A, U] =
+    if count > 0 then
+      thiz.decons: (a, nx) =>
+        drop(nx, count - 1)
+    else
+      thiz
+        
+
+  //========== map & foreach ==========
+
+
+  def map[A, U, B](thiz: NextStep[A, U], f: A => B): NextStep[B, U] =
+    thiz.decons: (a, nx) =>
+      f(a) ::! map(nx, f)
+
+
+  def map_!![A, B, U, V <: U](thiz: NextStep[A, U], f: A => B !! V): NextStep[B, V] =
+    thiz.decons: (a, nx) =>
+      f(a).flatMap(_ ::! map_!!(nx, f))
+
+
+  def flatMap[A, B, U, V <: U](thiz: NextStep[A, U], f: A => NextStep[B, V]): NextStep[B, V] =
+    thiz.decons: (a, nx) =>
+      append(f(a), flatMap(nx, f))
+
+
+  def flatMap_!![A, B, U, V <: U](thiz: NextStep[A, U], f: A => NextStep[B, V] !! V): NextStep[B, V] =
+    thiz.decons: (a, nx) =>
+      append(f(a).flatten, flatMap_!!(nx, f))
+
+
+  def foreach[A, U](thiz: NextStep[A, U], f: A => Unit): NextStep[A, U] =
+    thiz.decons: (a, nx) =>
+      !!.impure(f(a)) &&! (a ::! foreach(nx, f))
+
+
+  def foreach_!![A, U, V <: U](thiz: NextStep[A, U], f: A => Unit !! V): NextStep[A, V] =
+    thiz.decons: (a, nx) =>
+      f(a) &&! (a ::! foreach_!!(nx, f))
+
+
+  def forsome[A, U](thiz: NextStep[A, U], f: PartialFunction[A, Unit]): NextStep[A, U] =
+    forsome_!!(thiz, a => !!.impure(f(a)))
+
+
+  def forsome_!![A, U, V <: U](thiz: NextStep[A, U], f: PartialFunction[A, Unit !! V]): NextStep[A, V] =
+    thiz.decons: (a, nx) =>
+      val mb = f.applyOrElse(a, fallbackFun[A, Unit, V])
+      !!.when(fallbackVal ne mb)(mb) &&!
+      (a ::! forsome_!!(nx, f))
+
+
+  //========== filter & collect ==========
+
+
+  def filter[A, U](thiz: NextStep[A, U], f: A => Boolean): NextStep[A, U] =
+    thiz.decons: (a, nx) =>
+      f(a) match
+        case true => a ::! filter(nx, f)
+        case false => filter(nx, f)
+
+
+  def filterNot[A, U](thiz: NextStep[A, U], f: A => Boolean): NextStep[A, U] =
+    thiz.decons: (a, nx) =>
+      f(a) match
+        case false => a ::! filter(nx, f)
+        case true => filter(nx, f)
+
+
+  def filter_!![A, U, V <: U](thiz: NextStep[A, U], f: A => Boolean !! V): NextStep[A, V] =
+    thiz.decons: (a, nx) =>
+      f(a).flatMap:
+        case true => a ::! filter_!!(nx, f)
+        case false => filter_!!(nx, f)
+
+
+  def filterNot_!![A, U, V <: U](thiz: NextStep[A, U], f: A => Boolean !! V): NextStep[A, V] =
+    thiz.decons: (a, nx) =>
+      f(a).flatMap:
+        case false => a ::! filter_!!(nx, f)
+        case true => filter_!!(nx, f)
+
+
+  def mapFilter[A, U, B](thiz: NextStep[A, U], f: A => Option[B]): NextStep[B, U] =
+    thiz.decons: (a, nx) =>
+      f(a) match
+        case Some(b) => b ::! mapFilter(nx, f)
+        case None => mapFilter(nx, f)
+
+
+  def mapFilter_!![A, B, U, V <: U](thiz: NextStep[A, U], f: A => Option[B] !! V): NextStep[B, V] =
+    thiz.decons: (a, nx) =>
+      f(a).flatMap:
+        case Some(b) => b ::! mapFilter_!!(nx, f)
+        case None => mapFilter_!!(nx, f)
+
+
+  def collect[A, U, B](thiz: NextStep[A, U], f: PartialFunction[A, B]): NextStep[B, U] =
+    mapFilter(thiz, f.lift(_))
+
+
+  def collect_!![A, B, U, V <: U](thiz: NextStep[A, U], f: PartialFunction[A, B !! V]): NextStep[B, V] =
+    thiz.decons: (a, nx) =>
+      val mb = f.applyOrElse(a, fallbackFun[A, B, V])
+      if fallbackVal ne mb then
+        mb.flatMap(_ ::! collect_!!(nx, f))
+      else
+        collect_!!(nx, f)
+
+
+  def filterWithPrevious[A, U](thiz: NextStep[A, U], f: (A, A) => Boolean): NextStep[A, U] =
+    def loop(last: A, todo: NextStep[A, U]): NextStep[A, U] =
+      todo.flatMap:
+        case Step.Emit(a, nx) =>
+          f(last, a) match
+            case true => last ::! loop(a, nx)
+            case false => loop(a, nx)
+        case Step.End => singleton(last)
+    thiz.decons: (a, nx) =>
+      loop(a, nx)
+
+
+  def filterWithPrevious_!![A, U, V <: U](thiz: NextStep[A, U], f: (A, A) => Boolean !! V): NextStep[A, V] =
+    def loop(last: A, todo: NextStep[A, U]): NextStep[A, V] =
+      todo.flatMap:
+        case Step.Emit(a, nx) =>
+          f(last, a).flatMap:
+            case true => last ::! loop(a, nx)
+            case false => loop(a, nx)
+        case Step.End => singleton(last)
+    thiz.decons: (a, nx) =>
+      loop(a, nx)
+
+
+  //========== fold ==========
+
+
+  def fold[A, B, U](thiz: NextStep[A, U], zero: B, op: (B, A) => B): B !! U =
+    def loop(todo: NextStep[A, U], accum: B !! Any): B !! U =
+      todo.flatMap:
+        case Step.Emit(a, nx) => loop(nx, accum.map(op(_, a)))
+        case Step.End => accum
+    loop(thiz, zero.pure_!!)
+
+
+  def fold_!![A, B, U, V <: U](thiz: NextStep[A, U], zero: B, op: (B, A) => B !! V): B !! V =
+    def loop(todo: NextStep[A, U], accum: B !! V): B !! V =
+      todo.flatMap:
+        case Step.Emit(a, nx) => loop(nx, accum.flatMap(op(_, a)))
+        case Step.End => accum
+    loop(thiz, zero.pure_!!)
+
+
+  def drain[A, U](thiz: NextStep[A, U]): Unit !! U =
+    thiz.flatMap:
+      case Step.Emit(_, nx) => drain(nx)
+      case Step.End => !!.unit
+
+
+  //========== aux ==========
+
+
+  extension [A, U](thiz: NextStep[A, U])
+    inline private def decons[B, V <: U](inline f: (A, NextStep[A, U]) => NextStep[B, V]): NextStep[B, V] =
+      thiz.flatMap:
+        case Step.Emit(a, nx) => f(a, nx)
+        case Step.End => Step.endPure
+
+
+  extension [A, B](thiz: A => B)
+    def andThenPure: A => B !! Any = a => !!.pure(thiz(a))
+
+
+  private val fallbackResult: Any !! Any = !!.pure(null)
+  private val fallbackVal: Any => Any !! Any = _ => fallbackResult
+  private def fallbackFun[A, B, U]: A => B !! U = fallbackVal.asInstanceOf[A => B !! U]

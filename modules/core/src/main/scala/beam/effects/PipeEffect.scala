@@ -1,7 +1,8 @@
 package beam.effects
 import turbolift.{!!, Signature, Effect}
 import turbolift.Extensions._
-import beam.protocol._
+import beam.internals.Step
+import beam.Stream
 
 
 sealed trait PipeSignature[I, O] extends Signature:
@@ -28,23 +29,26 @@ trait PipeEffect[I, O] extends Effect[PipeSignature[I, O]] with PipeSignature[I,
   final val readOrElseExit: I !! this.type = readOrElse(exit)
 
 
-  final def handler[U](initial: PullUp[I, U]): ThisHandler[[_] =>> Unit, [_] =>> PullDown[O, U], U] =
-    type S = PullUp[I, U]
-    def stopBoth(s: S): PullDown[O, U] !! U  = PullUp.expectStop(s, PullDown.Stop)
+  final def handler[U](initial: Stream[I, U]): ThisHandler[[_] =>> Unit, [_] =>> Stream[O, U], U] =
+    new impl.Const.Stateful[Unit, [_] =>> Step[O, U], U] with impl.Sequential with PipeSignature[I, O]:
+      override type Stan = Step[I, U] !! U
 
-    new Const.Stateful[Unit, S, [_] =>> PullDown[O, U], U] with Sequential with PipeSignature[I, O]:
-      override def onReturn[A](a: Unit, s: S) = stopBoth(s)
+      override def onInitial = initial.unwrap.pure_!!
+
+      override def onReturn(a: Unit, s: Stan) = Step.endPure
 
       override def read: (I | EndOfInput) !@! ThisEffect =
-        (k, s) => s(true).flatMap:
-          case PullDown.Stop => k(EndOfInput)
-          case PullDown.Emit(i, s2) => k(i, s2)
+        (k, s) =>
+          k.escapeAndForget:
+            s.flatMap:
+              case Step.End => k(EndOfInput)
+              case Step.Emit(i, s2) => k(i, s2)
 
       override def write(value: O): Unit !@! ThisEffect = 
-        (k, s) =>
-          val cont = PullUp.cond(k(()), stopBoth(s))
-          PullDown.Emit(value, cont).pure_!!
+        (k, s) => Step.Emit(value, k((), s)).pure_!!
 
-      override def exit: Nothing !@! ThisEffect = (k, s) => stopBoth(s)
+      override def exit: Nothing !@! ThisEffect =
+        (k, _) => Step.endPure
 
-    .toHandler(initial)
+    .toHandler
+    .mapK([_] => (step: Step[O, U]) => Stream.wrap(step.pure_!!))

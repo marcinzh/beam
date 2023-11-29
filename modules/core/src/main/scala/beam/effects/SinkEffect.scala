@@ -1,7 +1,8 @@
 package beam.effects
 import turbolift.{!!, Signature, Effect}
 import turbolift.Extensions._
-import beam.protocol._
+import beam.internals.Step
+import beam.Stream
 
 
 sealed trait SinkSignature[I, R] extends Signature:
@@ -28,17 +29,22 @@ trait SinkEffect[I, R] extends Effect[SinkSignature[I, R]] with SinkSignature[I,
   final def exit(using ev: Unit <:< R): Nothing !! this.type = exit(ev(()))
 
 
-  final def handler[U](initial: PullUp[I, U]): ThisHandler[[_] =>> R, [_] =>> R, U] =
-    type S = PullUp[I, U]
+  final def handler[U](initial: Stream[I, U]): ThisHandler[[_] =>> R, [_] =>> R, U] =
+    new impl.Const.Stateful[R, [_] =>> R, U] with impl.Sequential with SinkSignature[I, R]:
+      override type Stan = Step[I, U] !! U
 
-    new Const.Stateful[R, S, [_] =>> R, U] with Sequential with SinkSignature[I, R]:
-      override def onReturn[A](r: R, s: S) = PullUp.expectStop(s, r)
+      override def onInitial = initial.unwrap.pure_!!
+
+      override def onReturn(r: R, s: Stan) = r.pure_!!
 
       override def read: (I | EndOfInput) !@! ThisEffect =
-        (k, s) => s(true).flatMap:
-          case PullDown.Stop => k(EndOfInput)
-          case PullDown.Emit(i, s2) => k(i, s2)
+        (k, s) =>
+          k.escapeAndForget:
+            s.flatMap:
+              case Step.End => k(EndOfInput)
+              case Step.Emit(i, s2) => k(i, s2)
 
-      override def exit(r: R): Nothing !@! ThisEffect = (k, s) => PullUp.expectStop(s, r)
+      override def exit(r: R): Nothing !@! ThisEffect =
+        (k, s) => r.pure_!!
 
-    .toHandler(initial)
+    .toHandler

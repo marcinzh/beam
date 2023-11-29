@@ -1,33 +1,20 @@
 package beam
 import turbolift.!!
-import turbolift.Extensions._
-import turbolift.effects.NonDet
-import beam.effects.StreamEffect
-import beam.protocol._
+import beam.internals.Step
 
 
-final class Stream[A, U](val pull: PullUp[A, U]) extends AnyVal:
-  def flowTo[B](pipe: Pipe[A, B, U]): Stream[B, U] = pipe.flowFrom(this)
-  def flowTo[B](sink: Sink[A, B, U]): B !! U = sink.flowFrom(this)
-  def >->[B](pipe: Pipe[A, B, U]): Stream[B, U] = flowTo(pipe)
-  def >->[B](sink: Sink[A, B, U]): B !! U = flowTo(sink)
+opaque type Stream[+A, -U] = Stream.Underlying[A, U]
 
 
-object Stream:
-  def apply[A](as: A*): Stream[A, Any] = from(as)
-  def empty[A]: Stream[A, Any] = new Stream(PullUp.alwaysStop)
+object Stream extends Stream_opaque:
+  type Underlying[A, U] = Step[A, U] !! U
 
-  def coroutine[O, U](body: (fx: StreamEffect[O]) => Unit !! (U & fx.type)): Stream[O, U] =
-    case object Fx extends StreamEffect[O]
-    val down = body(Fx).handleWith[U](Fx.handler[U])
-    new Stream(PullUp.invert(down))
-  
-  def from[A](as: Iterable[A]): Stream[A, Any] = new Stream(pullFromIterator(as.iterator))
-  def from[A](as: Iterator[A]): Stream[A, NonDet] = new Stream(pullFromIterator(as))
+  inline def wrap[A, U](that: Underlying[A, U]): Stream[A, U] = that
 
-  private def pullFromIterator[A](it: Iterator[A]): PullUp[A, Any] =
-    def loop(more: Boolean): PullDown[A, Any] !! Any =
-      if more && it.hasNext
-      then PullDown.Emit(it.next(), loop).pure_!!
-      else PullDown.stopPure
-    loop
+  extension [A, U](thiz: Stream[A, U])
+    inline def unwrap: Underlying[A, U] = thiz
+
+
+  // doesnt work as extensions :(
+  inline def unwrapFun[A, B, U](thiz: A => Stream[B, U]): A => Underlying[B, U] = thiz
+  inline def unwrapFunEff[A, B, U, V](thiz: A => Stream[B, U] !! V): A => Underlying[B, U] !! V = thiz      
