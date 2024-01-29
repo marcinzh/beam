@@ -15,12 +15,12 @@ trait StreamEffect[O] extends Effect[StreamSignature[O]] with StreamSignature[O]
   final override def exit: Nothing !! this.type = perform(_.exit)
 
 
-  final def handler[U]: ThisHandler[[_] =>> Unit, [_] =>> Stream[O, U], Any] =
-    new impl.Const.Stateless[Unit, [_] =>> Step[O, U], Any] with impl.Sequential with StreamSignature[O]:
+  final def handler[U]: ThisHandler.FromConst.ToConst.Free[Unit, Stream[O, U]] =
+    new impl.Stateless.FromConst.ToConst.Free[Unit, Step[O, U]] with impl.Sequential with StreamSignature[O]:
       override def onReturn(aa: Unit): Step[O, U] !! Any = Step.endPure
 
       override def write(value: O): Unit !@! ThisEffect =
-        k => Step.Emit(value, k(())).pure_!!
+        k => Step.Emit(value, k.resume(())).pure_!!
 
       override def exit: Nothing !@! ThisEffect =
         k => Step.endPure

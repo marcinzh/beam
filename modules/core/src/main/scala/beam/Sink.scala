@@ -22,5 +22,5 @@ object Sink:
   def fold[I, R](zero: R)(op: (R, I) => R): Sink[I, R, Any] =
     new Sink(_.fold(zero)(op))
 
-  def fold_!![I, R, U](zero: R)(op: (R, I) => R !! U): Sink[I, R, U] =
-    new Sink(_.fold_!!(zero)(op))
+  def foldEff[I, R, U](zero: R)(op: (R, I) => R !! U): Sink[I, R, U] =
+    new Sink(_.foldEff(zero)(op))

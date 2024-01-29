@@ -29,8 +29,8 @@ trait PipeEffect[I, O] extends Effect[PipeSignature[I, O]] with PipeSignature[I,
   final val readOrElseExit: I !! this.type = readOrElse(exit)
 
 
-  final def handler[U](initial: Stream[I, U]): ThisHandler[[_] =>> Unit, [_] =>> Stream[O, U], U] =
-    new impl.Const.Stateful[Unit, [_] =>> Step[O, U], U] with impl.Sequential with PipeSignature[I, O]:
+  final def handler[U](initial: Stream[I, U]): ThisHandler.FromConst.ToConst[Unit, Stream[O, U], U] =
+    new impl.Stateful.FromConst.ToConst[Unit, Step[O, U], U] with impl.Sequential with PipeSignature[I, O]:
       override type Stan = Step[I, U] !! U
 
       override def onInitial = initial.unwrap.pure_!!
@@ -41,11 +41,11 @@ trait PipeEffect[I, O] extends Effect[PipeSignature[I, O]] with PipeSignature[I,
         (k, s) =>
           k.escapeAndForget:
             s.flatMap:
-              case Step.End => k(EndOfInput)
-              case Step.Emit(i, s2) => k(i, s2)
+              case Step.End => k.resume(EndOfInput)
+              case Step.Emit(i, s2) => k.resume(i, s2)
 
       override def write(value: O): Unit !@! ThisEffect = 
-        (k, s) => Step.Emit(value, k((), s)).pure_!!
+        (k, s) => Step.Emit(value, k.resume((), s)).pure_!!
 
       override def exit: Nothing !@! ThisEffect =
         (k, _) => Step.endPure

@@ -13,7 +13,7 @@ private[beam] object StepOps:
 
 
   def singleton[A](a: A): NextStep[A, Any] = a ::! Step.endPure
-  def singleton_!![A, U](aa: A !! U): NextStep[A, U] = aa.flatMap(_ ::! Step.endPure)
+  def singletonEff[A, U](aa: A !! U): NextStep[A, U] = aa.flatMap(_ ::! Step.endPure)
 
 
   def unfold[A, S](s: S)(f: S => Option[(A, S)]): NextStep[A, Any] =
@@ -24,7 +24,7 @@ private[beam] object StepOps:
     loop(s)
 
 
-  def unfold_!![A, S, U](s: S)(f: S => Option[(A, S)] !! U): NextStep[A, U] =
+  def unfoldEff[A, S, U](s: S)(f: S => Option[(A, S)] !! U): NextStep[A, U] =
     def loop(s: S): NextStep[A, U] =
       f(s).flatMap:
         case Some((a, s2)) => a ::! loop(s2)
@@ -33,9 +33,9 @@ private[beam] object StepOps:
 
 
   def repeat[A](a: A): NextStep[A, Any] = a ::!? repeat(a)
-  def repeat_!![A, U](aa: A !! U): NextStep[A, U] = aa.flatMap(_ ::! repeat_!!(aa))
+  def repeatEff[A, U](aa: A !! U): NextStep[A, U] = aa.flatMap(_ ::! repeatEff(aa))
   def iterate[A](a: A)(f: A => A): NextStep[A, Any] = a ::!? iterate(f(a))(f)
-  def iterate_!![A, U](a: A)(f: A => A !! U): NextStep[A, U] = a ::! f(a).flatMap(iterate_!!(_)(f))
+  def iterateEff[A, U](a: A)(f: A => A !! U): NextStep[A, U] = a ::! f(a).flatMap(iterateEff(_)(f))
 
 
   def fromIterator[A](it: Iterator[A]): NextStep[A, Any] =
@@ -102,9 +102,9 @@ private[beam] object StepOps:
       f(a) ::! map(nx, f)
 
 
-  def map_!![A, B, U, V <: U](thiz: NextStep[A, U], f: A => B !! V): NextStep[B, V] =
+  def mapEff[A, B, U, V <: U](thiz: NextStep[A, U], f: A => B !! V): NextStep[B, V] =
     thiz.decons: (a, nx) =>
-      f(a).flatMap(_ ::! map_!!(nx, f))
+      f(a).flatMap(_ ::! mapEff(nx, f))
 
 
   def flatMap[A, B, U, V <: U](thiz: NextStep[A, U], f: A => NextStep[B, V]): NextStep[B, V] =
@@ -112,9 +112,9 @@ private[beam] object StepOps:
       append(f(a), flatMap(nx, f))
 
 
-  def flatMap_!![A, B, U, V <: U](thiz: NextStep[A, U], f: A => NextStep[B, V] !! V): NextStep[B, V] =
+  def flatMapEff[A, B, U, V <: U](thiz: NextStep[A, U], f: A => NextStep[B, V] !! V): NextStep[B, V] =
     thiz.decons: (a, nx) =>
-      append(f(a).flatten, flatMap_!!(nx, f))
+      append(f(a).flatten, flatMapEff(nx, f))
 
 
   def foreach[A, U](thiz: NextStep[A, U], f: A => Unit): NextStep[A, U] =
@@ -122,20 +122,20 @@ private[beam] object StepOps:
       !!.impure(f(a)) &&! (a ::! foreach(nx, f))
 
 
-  def foreach_!![A, U, V <: U](thiz: NextStep[A, U], f: A => Unit !! V): NextStep[A, V] =
+  def foreachEff[A, U, V <: U](thiz: NextStep[A, U], f: A => Unit !! V): NextStep[A, V] =
     thiz.decons: (a, nx) =>
-      f(a) &&! (a ::! foreach_!!(nx, f))
+      f(a) &&! (a ::! foreachEff(nx, f))
 
 
   def forsome[A, U](thiz: NextStep[A, U], f: PartialFunction[A, Unit]): NextStep[A, U] =
-    forsome_!!(thiz, a => !!.impure(f(a)))
+    forsomeEff(thiz, a => !!.impure(f(a)))
 
 
-  def forsome_!![A, U, V <: U](thiz: NextStep[A, U], f: PartialFunction[A, Unit !! V]): NextStep[A, V] =
+  def forsomeEff[A, U, V <: U](thiz: NextStep[A, U], f: PartialFunction[A, Unit !! V]): NextStep[A, V] =
     thiz.decons: (a, nx) =>
       val mb = f.applyOrElse(a, fallbackFun[A, Unit, V])
       !!.when(fallbackVal ne mb)(mb) &&!
-      (a ::! forsome_!!(nx, f))
+      (a ::! forsomeEff(nx, f))
 
 
   //========== filter & collect ==========
@@ -155,18 +155,18 @@ private[beam] object StepOps:
         case true => filter(nx, f)
 
 
-  def filter_!![A, U, V <: U](thiz: NextStep[A, U], f: A => Boolean !! V): NextStep[A, V] =
+  def filterEff[A, U, V <: U](thiz: NextStep[A, U], f: A => Boolean !! V): NextStep[A, V] =
     thiz.decons: (a, nx) =>
       f(a).flatMap:
-        case true => a ::! filter_!!(nx, f)
-        case false => filter_!!(nx, f)
+        case true => a ::! filterEff(nx, f)
+        case false => filterEff(nx, f)
 
 
-  def filterNot_!![A, U, V <: U](thiz: NextStep[A, U], f: A => Boolean !! V): NextStep[A, V] =
+  def filterNotEff[A, U, V <: U](thiz: NextStep[A, U], f: A => Boolean !! V): NextStep[A, V] =
     thiz.decons: (a, nx) =>
       f(a).flatMap:
-        case false => a ::! filter_!!(nx, f)
-        case true => filter_!!(nx, f)
+        case false => a ::! filterEff(nx, f)
+        case true => filterEff(nx, f)
 
 
   def mapFilter[A, U, B](thiz: NextStep[A, U], f: A => Option[B]): NextStep[B, U] =
@@ -176,24 +176,24 @@ private[beam] object StepOps:
         case None => mapFilter(nx, f)
 
 
-  def mapFilter_!![A, B, U, V <: U](thiz: NextStep[A, U], f: A => Option[B] !! V): NextStep[B, V] =
+  def mapFilterEff[A, B, U, V <: U](thiz: NextStep[A, U], f: A => Option[B] !! V): NextStep[B, V] =
     thiz.decons: (a, nx) =>
       f(a).flatMap:
-        case Some(b) => b ::! mapFilter_!!(nx, f)
-        case None => mapFilter_!!(nx, f)
+        case Some(b) => b ::! mapFilterEff(nx, f)
+        case None => mapFilterEff(nx, f)
 
 
   def collect[A, U, B](thiz: NextStep[A, U], f: PartialFunction[A, B]): NextStep[B, U] =
     mapFilter(thiz, f.lift(_))
 
 
-  def collect_!![A, B, U, V <: U](thiz: NextStep[A, U], f: PartialFunction[A, B !! V]): NextStep[B, V] =
+  def collectEff[A, B, U, V <: U](thiz: NextStep[A, U], f: PartialFunction[A, B !! V]): NextStep[B, V] =
     thiz.decons: (a, nx) =>
       val mb = f.applyOrElse(a, fallbackFun[A, B, V])
       if fallbackVal ne mb then
-        mb.flatMap(_ ::! collect_!!(nx, f))
+        mb.flatMap(_ ::! collectEff(nx, f))
       else
-        collect_!!(nx, f)
+        collectEff(nx, f)
 
 
   def filterWithPrevious[A, U](thiz: NextStep[A, U], f: (A, A) => Boolean): NextStep[A, U] =
@@ -208,7 +208,7 @@ private[beam] object StepOps:
       loop(a, nx)
 
 
-  def filterWithPrevious_!![A, U, V <: U](thiz: NextStep[A, U], f: (A, A) => Boolean !! V): NextStep[A, V] =
+  def filterWithPreviousEff[A, U, V <: U](thiz: NextStep[A, U], f: (A, A) => Boolean !! V): NextStep[A, V] =
     def loop(last: A, todo: NextStep[A, U]): NextStep[A, V] =
       todo.flatMap:
         case Step.Emit(a, nx) =>
@@ -231,7 +231,7 @@ private[beam] object StepOps:
     loop(thiz, zero.pure_!!)
 
 
-  def fold_!![A, B, U, V <: U](thiz: NextStep[A, U], zero: B, op: (B, A) => B !! V): B !! V =
+  def foldEff[A, B, U, V <: U](thiz: NextStep[A, U], zero: B, op: (B, A) => B !! V): B !! V =
     def loop(todo: NextStep[A, U], accum: B !! V): B !! V =
       todo.flatMap:
         case Step.Emit(a, nx) => loop(nx, accum.flatMap(op(_, a)))

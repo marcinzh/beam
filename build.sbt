@@ -1,5 +1,5 @@
 ThisBuild / organization := "io.github.marcinzh"
-ThisBuild / version := "0.3.0"
+ThisBuild / version := "0.4.0"
 ThisBuild / scalaVersion := "3.3.1"
 ThisBuild / crossScalaVersions := Seq(scalaVersion.value)
 
@@ -25,7 +25,7 @@ ThisBuild / scalacOptions ++= Seq(
 val Deps = {
   object deps {
     val specs2_core = "org.specs2" %% "specs2-core" % "5.4.0" % "test"
-    val turbolift = "io.github.marcinzh" %% "turbolift-core" % "0.61.0-SNAPSHOT"
+    val turbolift = "io.github.marcinzh" %% "turbolift-core" % "0.72.0"
     val betterFiles = ("com.github.pathikrit" %% "better-files" % "3.9.1").cross(CrossVersion.for3Use2_13)
   }
   deps
@@ -34,7 +34,7 @@ val Deps = {
 lazy val root = project
   .in(file("."))
   .settings(sourcesInBase := false)
-  .settings(dontPublishMe: _*)
+  .settings(publish / skip := true)
   .aggregate(core, devel)
 
 lazy val core = project
@@ -48,7 +48,7 @@ lazy val core = project
 lazy val devel = project
   .in(file("modules/devel"))
   .settings(name := "beam-devel")
-  .settings(dontPublishMe: _*)
+  .settings(publish / skip := true)
   .dependsOn(core)
 
 //=================================================
@@ -58,18 +58,12 @@ lazy val testSettings = Seq(
   Test / parallelExecution := false,
 )
 
-lazy val dontPublishMe = Seq(
-  publishTo := None,
-  publish := (()),
-  publishLocal := (()),
-  publishArtifact := false
-)
-
-ThisBuild / description := "TBD"
+ThisBuild / description := "Stream processing with algebraic effects and handlers"
 ThisBuild / organizationName := "marcinzh"
 ThisBuild / homepage := Some(url("https://github.com/marcinzh/beam"))
 ThisBuild / scmInfo := Some(ScmInfo(url("https://github.com/marcinzh/beam"), "scm:git@github.com:marcinzh/beam.git"))
 ThisBuild / licenses := List("MIT" -> new URL("http://www.opensource.org/licenses/MIT"))
+ThisBuild / versionScheme := Some("semver-spec")
 ThisBuild / pomIncludeRepository := { _ => false }
 ThisBuild / publishMavenStyle := true
 ThisBuild / publishTo := {
