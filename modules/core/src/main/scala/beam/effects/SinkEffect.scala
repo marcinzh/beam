@@ -6,8 +6,8 @@ import beam.Stream
 
 
 sealed trait SinkSignature[I, R] extends Signature:
-  def read: (I | EndOfInput) !@! ThisEffect
-  def exit(value: R): Nothing !@! ThisEffect
+  def read: (I | EndOfInput) !! ThisEffect
+  def exit(value: R): Nothing !! ThisEffect
 
 
 trait SinkEffect[I, R] extends Effect[SinkSignature[I, R]] with SinkSignature[I, R]:
@@ -29,22 +29,21 @@ trait SinkEffect[I, R] extends Effect[SinkSignature[I, R]] with SinkSignature[I,
   final def exit(using ev: Unit <:< R): Nothing !! this.type = exit(ev(()))
 
 
-  final def handler[U](initial: Stream[I, U]): ThisHandler.FromConst.ToConst[R, R, U] =
-    new impl.Stateful.FromConst.ToConst[R, R, U] with impl.Sequential with SinkSignature[I, R]:
-      override type Stan = Step[I, U] !! U
+  final def handler[U](initial: Stream[I, U]): ThisHandler[Const[R], Const[R], U] =
+    new impl.Stateful[Const[R], Const[R], U] with impl.Sequential with SinkSignature[I, R]:
+      override type Local = Step[I, U] !! U
 
       override def onInitial = initial.unwrap.pure_!!
 
-      override def onReturn(r: R, s: Stan) = r.pure_!!
+      override def onReturn(r: R, s: Local) = r.pure_!!
 
-      override def read: (I | EndOfInput) !@! ThisEffect =
-        (k, s) =>
-          k.escapeAndForget:
-            s.flatMap:
-              case Step.End => k.resume(EndOfInput)
-              case Step.Emit(i, s2) => k.resume(i, s2)
+      override def read: (I | EndOfInput) !! ThisEffect =
+        Control.captureGet: (k, s) =>
+          s.flatMap:
+            case Step.End => k.resume(EndOfInput)
+            case Step.Emit(i, s2) => k.resume(i, s2)
 
-      override def exit(r: R): Nothing !@! ThisEffect =
-        (k, s) => r.pure_!!
+      override def exit(r: R): Nothing !! ThisEffect =
+        Control.abort(r)
 
     .toHandler

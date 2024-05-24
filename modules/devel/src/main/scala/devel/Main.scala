@@ -1,5 +1,6 @@
 package devel
 import turbolift.!!
+import turbolift.effects.Console
 import turbolift.Extensions._
 import beam._
 
@@ -9,6 +10,7 @@ object Main:
     args.headOption.getOrElse("") match
       case ""|"1" => example1()
       case "2" => example2()
+      case "3" => example3()
 
 
   val lorem = """
@@ -43,3 +45,20 @@ object Main:
       val s = Stream.from(lorem)
       val k = Sink.fold("")((a, b) => s"$a\n$b")
       (s >-> p >-> k).run
+
+
+  def example3() =
+    val fibos: Stream[Long, Any] =
+      Stream.coroutine: fx =>
+        def loop(a: Long, b: Long): Unit !! fx.type =
+          for
+            _ <- fx.write(a)
+            _ <- !!.when(a % 2 == 0)(fx.write(a))
+            _ <- loop(b, a + b)
+          yield ()
+        loop(1, 1)
+
+    fibos.take(10).toVector
+    .tapEff(xs => Console.println(xs.mkString(" ")))
+    .handleWith(Console.handler)
+    .unsafeRun

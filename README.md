@@ -22,15 +22,14 @@ Optionally, they can be constructed as **coroutines**.
 Stuttering Fibonacci sequence: when the number is even, emit it twice.
 
 ```scala
-//> using scala "3.3.1"
-//> using dep "io.github.marcinzh::beam-core:0.4.0"
+//> using scala "3.3.3"
+//> using dep "io.github.marcinzh::beam-core:0.5.0"
 import turbolift.!!
 import turbolift.effects.Console
 import beam._
 
 @main def main =
   val fibos: Stream[Long, Any] =
-    // Encapsulates a local instance of `StreamEffect`, which is then handled on exit.
     Stream.coroutine: fx =>
       def loop(a: Long, b: Long): Unit !! fx.type =
         for
@@ -39,9 +38,9 @@ import beam._
           _ <- loop(b, a + b)
         yield ()
       loop(1, 1)
-    
+
   fibos.take(10).toVector
-  .flatTap(xs => Console.println(xs.mkString(" ")))
+  .tapEff(xs => Console.println(xs.mkString(" ")))
   .handleWith(Console.handler)
   .unsafeRun
 ```

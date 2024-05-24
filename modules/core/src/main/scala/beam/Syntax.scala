@@ -9,7 +9,7 @@ object Syntax:
       Stream.wrap(!!.pure(Step.Emit(thiz, that.unwrap)))
 
     inline def ::!?[B >: A, U](that: => Stream[B, U]): Stream[B, U] =
-      Stream.wrap(!!.pure(Step.Emit(thiz, !!.defer(that.unwrap))))
+      Stream.wrap(!!.pure(Step.Emit(thiz, !!.impureEff(that.unwrap))))
 
   extension [A, U, V <: U](thiz: Stream[A, U] !! V)
     def flattenAsStream: Stream[A, V] = Stream.wrap(thiz.flatMap(_.unwrap))

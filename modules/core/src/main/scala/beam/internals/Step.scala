@@ -15,4 +15,4 @@ object Step:
   object Syntax:
     extension [A](thiz: A)
       inline def ::![B >: A, U](that: Step[B, U] !! U): Step[B, U] !! U = !!.pure(Step.Emit(thiz, that))
-      inline def ::!?[B >: A, U](that: => Step[B, U] !! U): Step[B, U] !! U = !!.pure(Step.Emit(thiz, !!.defer(that)))
+      inline def ::!?[B >: A, U](that: => Step[B, U] !! U): Step[B, U] !! U = !!.pure(Step.Emit(thiz, !!.impureEff(that)))
