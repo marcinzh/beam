@@ -21,7 +21,7 @@ trait StreamEffect[O] extends Effect[StreamSignature[O]] with StreamSignature[O]
 
       override def write(value: O): Unit !! ThisEffect =
         Control.capture: k =>
-          Step.Emit(value, k.resume(())).pure_!!
+          Step.Emit(value, Control.strip(k(()))).pure_!!
 
       override def exit: Nothing !! ThisEffect =
         Control.abort(Step.End)

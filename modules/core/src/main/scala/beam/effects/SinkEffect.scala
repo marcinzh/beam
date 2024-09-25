@@ -40,8 +40,8 @@ trait SinkEffect[I, R] extends Effect[SinkSignature[I, R]] with SinkSignature[I,
       override def read: (I | EndOfInput) !! ThisEffect =
         Control.captureGet: (k, s) =>
           s.flatMap:
-            case Step.End => k.resume(EndOfInput)
-            case Step.Emit(i, s2) => k.resume(i, s2)
+            case Step.End => k(EndOfInput)
+            case Step.Emit(i, s2) => k(i, s2)
 
       override def exit(r: R): Nothing !! ThisEffect =
         Control.abort(r)

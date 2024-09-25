@@ -1,5 +1,5 @@
 ThisBuild / organization := "io.github.marcinzh"
-ThisBuild / version := "0.5.0"
+ThisBuild / version := "0.7.0-SNAPSHOT"
 ThisBuild / scalaVersion := "3.3.3"
 ThisBuild / crossScalaVersions := Seq(scalaVersion.value)
 
@@ -25,7 +25,7 @@ ThisBuild / scalacOptions ++= Seq(
 val Deps = {
   object deps {
     val specs2_core = "org.specs2" %% "specs2-core" % "5.4.0" % "test"
-    val turbolift = "io.github.marcinzh" %% "turbolift-core" % "0.82.0"
+    val turbolift = "io.github.marcinzh" %% "turbolift-core" % "0.98.0"
     val betterFiles = ("com.github.pathikrit" %% "better-files" % "3.9.1").cross(CrossVersion.for3Use2_13)
   }
   deps

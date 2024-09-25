@@ -40,12 +40,12 @@ trait PipeEffect[I, O] extends Effect[PipeSignature[I, O]] with PipeSignature[I,
       override def read: (I | EndOfInput) !! ThisEffect =
         Control.captureGet: (k, s) =>
           s.flatMap:
-            case Step.End => k.resume(EndOfInput)
-            case Step.Emit(i, s2) => k.resume(i, s2)
+            case Step.End => k(EndOfInput)
+            case Step.Emit(i, s2) => k(i, s2)
 
       override def write(value: O): Unit !! ThisEffect =
         Control.captureGet: (k, s) =>
-          Step.Emit(value, k.resume((), s)).pure_!!
+          Step.Emit(value, Control.strip(k((), s))).pure_!!
 
       override def exit: Nothing !! ThisEffect =
         Control.abort(Step.End)
