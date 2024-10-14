@@ -1,25 +1,16 @@
-package devel
-import scala.util.chaining._
+//> using scala "3.3.4"
+//> using dep "io.github.marcinzh::beam-core:0.9.0-SNAPSHOT"
+//> using dep "io.github.marcinzh::turbolift-bindless:0.104.0"
+package examples
 import turbolift.!!
+import turbolift.bindless._
 import turbolift.effects.{IO, FinalizerEffectIO, Console}
 import turbolift.io.ResourceFactory
-import turbolift.bindless._
 import beam._
 
 
 //@#@TODO not good
-case object Example3 extends Example:
-  override def apply(): Unit =
-    `do`:
-      val foo = makeStream("foo", 0).!.take(10)
-      val bar = makeStream("bar", 100).!.take(5)
-      val qux = foo ++ bar
-      qux.drain.!
-    .handleWith(Fin.handler)
-    .handleWith(Console.handler)
-    .runIO
-
-
+@main def ex03_resource =
   def makeResource(name: String) = ResourceFactory(
     Console.println(s"OPEN `$name`"),
     _ => Console.println(s"CLOSE `$name`"),
@@ -37,3 +28,13 @@ case object Example3 extends Example:
             fx.emit(n).!
             loop(n + 1).!
         loop(initial)
+
+
+  `do`:
+    val foo = makeStream("foo", 0).!.take(10)
+    val bar = makeStream("bar", 100).!.take(5)
+    val qux = foo ++ bar
+    qux.drain.!
+  .handleWith(Fin.handler)
+  .handleWith(Console.handler)
+  .runIO

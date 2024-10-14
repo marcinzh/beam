@@ -1,6 +1,6 @@
 ThisBuild / organization := "io.github.marcinzh"
-ThisBuild / version := "0.8.0"
-ThisBuild / scalaVersion := "3.3.3"
+ThisBuild / version := "0.9.0-SNAPSHOT"
+ThisBuild / scalaVersion := "3.3.4"
 ThisBuild / crossScalaVersions := Seq(scalaVersion.value)
 
 ThisBuild / watchBeforeCommand := Watch.clearScreen
@@ -23,7 +23,7 @@ ThisBuild / scalacOptions ++= Seq(
 )
 
 val Deps = {
-  val tur_v = "0.98.0"
+  val tur_v = "0.104.0"
   object deps {
     val specs2_core = "org.specs2" %% "specs2-core" % "5.4.0" % "test"
     val turbolift_core = "io.github.marcinzh" %% "turbolift-core" % tur_v
@@ -51,6 +51,7 @@ lazy val examples = project
   .in(file("modules/examples"))
   .settings(name := "beam-examples")
   .settings(publish / skip := true)
+  .settings(Compile / run / mainClass := Some("runner.Main"))
   .settings(libraryDependencies ++= Seq(
     Deps.turbolift_bindless,
   ))
