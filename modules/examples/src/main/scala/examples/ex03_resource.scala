@@ -1,6 +1,6 @@
-//> using scala "3.3.4"
-//> using dep "io.github.marcinzh::beam-core:0.9.0-SNAPSHOT"
-//> using dep "io.github.marcinzh::turbolift-bindless:0.104.0"
+//> using scala "3.3.5"
+//> using dep "io.github.marcinzh::beam-core:0.12.0"
+//> using dep "io.github.marcinzh::turbolift-bindless:0.108.0"
 package examples
 import turbolift.!!
 import turbolift.bindless._

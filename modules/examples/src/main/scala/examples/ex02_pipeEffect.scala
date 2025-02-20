@@ -1,16 +1,14 @@
-//> using scala "3.3.4"
-//> using dep "io.github.marcinzh::beam-core:0.9.0-SNAPSHOT"
-//> using dep "io.github.marcinzh::turbolift-bindless:0.104.0"
+//> using scala "3.3.5"
+//> using dep "io.github.marcinzh::beam-core:0.12.0"
+//> using dep "io.github.marcinzh::turbolift-bindless:0.108.0"
 package examples
 import scala.util.chaining._
 import turbolift.!!
 import turbolift.bindless._
+import turbolift.effects.Console
 import beam._
 
-/*
- * Transforms a stream of words, by grouping words into pairs
- */
-
+/** Transforms a stream of words, by grouping words into pairs */
 
 @main def ex02_pipeEffect =
   def intoPairs[A, U](missing: A): Stream[A, U] => Stream[(A, A), U] =
@@ -40,6 +38,7 @@ import beam._
   Stream
     .from(lorem)
     .pipe(intoPairs(missing ="<END>"))
-    .foreach { case (a, b) => println(s"| ${a.pad} | ${b.pad} |") }
+    .foreachEff { case (a, b) => Console.println(s"| ${a.pad} | ${b.pad} |") }
     .drain
-  .run
+  .handleWith(Console.handler)
+  .runIO

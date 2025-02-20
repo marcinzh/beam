@@ -7,4 +7,4 @@ import Syntax._
 object Source:
   def apply[O, U](body: (fx: SourceEffect[O]) => Unit !! (U & fx.type)): Stream[O, U] =
     case object Fx extends SourceEffect[O]
-    body(Fx).handleWith[U](Fx.defaultHandler[U]).flattenAsStream
+    body(Fx).asStream(Fx)

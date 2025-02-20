@@ -1,6 +1,6 @@
 ThisBuild / organization := "io.github.marcinzh"
-ThisBuild / version := "0.9.0-SNAPSHOT"
-ThisBuild / scalaVersion := "3.3.4"
+ThisBuild / version := "0.12.0"
+ThisBuild / scalaVersion := "3.3.5"
 ThisBuild / crossScalaVersions := Seq(scalaVersion.value)
 
 ThisBuild / watchBeforeCommand := Watch.clearScreen
@@ -23,7 +23,7 @@ ThisBuild / scalacOptions ++= Seq(
 )
 
 val Deps = {
-  val tur_v = "0.104.0"
+  val tur_v = "0.108.0"
   object deps {
     val specs2_core = "org.specs2" %% "specs2-core" % "5.4.0" % "test"
     val turbolift_core = "io.github.marcinzh" %% "turbolift-core" % tur_v
@@ -59,6 +59,9 @@ lazy val examples = project
 
 //=================================================
 
+val cls = taskKey[Unit]("cls")
+cls := { print("\u001b[0m\u001b[2J\u001bc") }
+
 lazy val testSettings = Seq(
   libraryDependencies += Deps.specs2_core,
   Test / parallelExecution := false,
@@ -68,7 +71,7 @@ ThisBuild / description := "Stream processing with algebraic effects and handler
 ThisBuild / organizationName := "marcinzh"
 ThisBuild / homepage := Some(url("https://github.com/marcinzh/beam"))
 ThisBuild / scmInfo := Some(ScmInfo(url("https://github.com/marcinzh/beam"), "scm:git@github.com:marcinzh/beam.git"))
-ThisBuild / licenses := List("MIT" -> new URL("http://www.opensource.org/licenses/MIT"))
+ThisBuild / licenses := List("MIT" -> url("http://www.opensource.org/licenses/MIT"))
 ThisBuild / versionScheme := Some("semver-spec")
 ThisBuild / pomIncludeRepository := { _ => false }
 ThisBuild / publishMavenStyle := true

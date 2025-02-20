@@ -1,16 +1,20 @@
 package beam
 import turbolift.!!
+import turbolift.Extensions._
+import beam.internals.StreamImpl
 
 
 object Syntax:
-  extension [A](thiz: A)
-    inline def ?::[B >: A, U](that: => Stream[B, U]): Stream[B, U] = Stream.consLazy(thiz, that)
-    inline def !::[B >: A, U](that: Stream[B, U] !! U): Stream[B, U] = Stream.consEff(thiz, that)
+  extension [U](comp: Unit !! U)
+    def asStream[A, V](fx: SourceEffect[A])(using (fx.type & V) =:= U): Stream[A, V] =
+      StreamImpl(fx)(comp.castEv[V & fx.type])
 
-  extension [A](thiz: Chunk[A])
-    inline def ?:::[B >: A, U](that: => Stream[B, U]): Stream[B, U] = Stream.consChunkLazy(thiz, that)
-    inline def !:::[B >: A, U](that: Stream[B, U] !! U): Stream[B, U] = Stream.consChunkEff(thiz, that)
+  extension [A](fx: SourceEffect[A])
+    def emptyStream: Stream[A, Any] = StreamImpl[A, Any](fx)(!!.unit)
 
+  extension [A](a: A)
+    def singleton: Stream[A, Any] = Stream.singleton(a)
 
-  extension [A, U](thiz: Stream[A, U] !! U)
-    def flattenAsStream: Stream[A, U] = Stream.delay(thiz)
+    def !::[B >: A, U](stream: Stream[B, U]): Stream[B, U] =
+      val stream2 = stream.asImpl
+      (stream2.Fx.emit(a) &&! stream2.compute).asStream(stream2.Fx)
