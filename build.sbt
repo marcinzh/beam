@@ -1,8 +1,9 @@
+val ScalaLTS = "3.3.5"
+val ScalaNext = "3.6.4"
 ThisBuild / organization := "io.github.marcinzh"
-ThisBuild / version := "0.12.0"
-ThisBuild / scalaVersion := "3.3.5"
-ThisBuild / crossScalaVersions := Seq(scalaVersion.value)
-
+ThisBuild / version := "0.13.0-SNAPSHOT"
+ThisBuild / scalaVersion := ScalaLTS
+ThisBuild / crossScalaVersions := Seq(ScalaLTS, ScalaNext)
 ThisBuild / watchBeforeCommand := Watch.clearScreen
 ThisBuild / watchTriggeredMessage := Watch.clearScreenOnTrigger
 ThisBuild / watchForceTriggerOnAnyChange := true
@@ -13,7 +14,6 @@ ThisBuild / scalacOptions ++= Seq(
   "-unchecked",
   // "-Wnonunit-statement",
   "-Xfatal-warnings",
-  "-Ykind-projector:underscores",
   // Seq(
   //   "java.lang",
   //   "scala",
@@ -21,6 +21,14 @@ ThisBuild / scalacOptions ++= Seq(
   //   "scala.util.chaining",
   // ).mkString("-Yimports:", ",", "")
 )
+ThisBuild / scalacOptions += {
+  if (VersionNumber(scalaVersion.value).matchesSemVer(SemanticSelector(">=3.4.0")))
+    "-Xkind-projector:underscores"
+  else
+    "-Ykind-projector:underscores"
+}
+ThisBuild / publish / skip := (scalaVersion.value != ScalaLTS)
+
 
 val Deps = {
   val tur_v = "0.108.0"
@@ -43,18 +51,14 @@ lazy val core = project
   .in(file("modules/core"))
   .settings(name := "beam-core")
   .settings(testSettings: _*)
-  .settings(libraryDependencies ++= Seq(
-    Deps.turbolift_core,
-  ))
+  .settings(libraryDependencies += Deps.turbolift_core)
 
 lazy val examples = project
   .in(file("modules/examples"))
   .settings(name := "beam-examples")
   .settings(publish / skip := true)
   .settings(Compile / run / mainClass := Some("runner.Main"))
-  .settings(libraryDependencies ++= Seq(
-    Deps.turbolift_bindless,
-  ))
+  .settings(libraryDependencies += Deps.turbolift_bindless)
   .dependsOn(core)
 
 //=================================================
