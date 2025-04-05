@@ -15,6 +15,7 @@ object Syntax:
   extension [A](a: A)
     def singleton: Stream[A, Any] = Stream.singleton(a)
 
-    def !::[B >: A, U](stream: Stream[B, U]): Stream[B, U] =
-      val stream2 = stream.asImpl
-      (stream2.Fx.emit(a) &&! stream2.compute).asStream(stream2.Fx)
+    def !::[B >: A, U](stream: Stream[B, U]): Stream[B, U] = stream.prepend(a)
+
+  extension [A, U](comp: Stream[A, U] !! U)
+    def flattenAsStream: Stream[A, U] = Stream.flattenStream(comp)

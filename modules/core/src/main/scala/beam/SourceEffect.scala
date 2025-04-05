@@ -32,7 +32,10 @@ trait SourceEffectExt[O, R] extends Effect[SourceSignature[O, R]] with SourceSig
     def onReturn(s: Local): R !! ThisEffect
 
 
-trait SourceEffect[O] extends SourceEffectExt[O, Unit]
+
+trait SourceEffect[O] extends SourceEffectExt[O, Unit]:
+  final def upCast[O2 >: O]: SourceEffect[O2] = asInstanceOf[SourceEffect[O2]]
+
 
 object SourceEffect:
   case object FxNothing extends SourceEffect[Nothing]

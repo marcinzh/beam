@@ -24,7 +24,7 @@ Runnable with [`scala-cli`](https://scala-cli.virtuslab.org/).
 ```scala
 //> using scala "3.3.5"
 //> using dep "io.github.marcinzh::beam-core:0.12.0"
-//> using dep "io.github.marcinzh::turbolift-bindless:0.108.0"
+//> using dep "io.github.marcinzh::turbolift-bindless:0.112.0"
 package examples
 import turbolift.!!
 import turbolift.effects.Console
@@ -44,9 +44,8 @@ import beam._
       loop(1, 1)
 
   stream
-    .foreachEff(i => Console.println(i.toString))
     .take(20)
-    .drain
+    .foreachEff(i => Console.println(i.toString))
   .handleWith(Console.handler)
   .runIO
 ```

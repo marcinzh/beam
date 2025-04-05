@@ -1,6 +1,6 @@
 //> using scala "3.3.5"
 //> using dep "io.github.marcinzh::beam-core:0.12.0"
-//> using dep "io.github.marcinzh::turbolift-bindless:0.108.0"
+//> using dep "io.github.marcinzh::turbolift-bindless:0.112.0"
 package examples
 import scala.util.chaining._
 import turbolift.!!
@@ -39,6 +39,5 @@ import beam._
     .from(lorem)
     .pipe(intoPairs(missing ="<END>"))
     .foreachEff { case (a, b) => Console.println(s"| ${a.pad} | ${b.pad} |") }
-    .drain
   .handleWith(Console.handler)
   .runIO
