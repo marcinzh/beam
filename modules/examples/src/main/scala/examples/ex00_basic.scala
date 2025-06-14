@@ -1,5 +1,5 @@
 //> using scala "3.3.5"
-//> using dep "io.github.marcinzh::beam-core:0.12.0"
+//> using dep "io.github.marcinzh::beam-core:0.16.0"
 package examples
 import beam._
 

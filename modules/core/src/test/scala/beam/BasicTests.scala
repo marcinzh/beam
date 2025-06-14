@@ -1,6 +1,5 @@
 package beam
 import java.lang.Character
-import scala.collection.immutable.Queue
 import org.specs2.mutable._
 import turbolift.!!
 import turbolift.Extensions._
@@ -11,6 +10,8 @@ import beam.Syntax._
 
 
 class BasicTests extends Specification:
+  sequential
+
   "pure" >> {
     "cons" >>{
       (1 !:: 2 !:: Stream.from(3 to 5)).toVector.run === (1 to 5).toVector
@@ -89,19 +90,19 @@ class BasicTests extends Specification:
     }
 
     "window" >> {
-      "window > size" >>{ Stream(1, 2, 3).window(5).toVector.run === Vector() }
-      "window = size" >>{ Stream(1, 2, 3).window(3).toVector.run === Vector(Queue(1, 2, 3)) }
+      "window > size" >>{ Stream(1, 2, 3).window(5).toVector.run.map(_.toVector) === Vector() }
+      "window = size" >>{ Stream(1, 2, 3).window(3).toVector.run.map(_.toVector) === Vector(Vector(1, 2, 3)) }
       "window < size" >>{
-        Stream(1, 2, 3, 4, 5).window(3).toVector.run === Vector(
-          Queue(1, 2, 3),
-          Queue(2, 3, 4),
-          Queue(3, 4, 5),
+        Stream(1, 2, 3, 4, 5).window(3).toVector.run.map(_.toVector) === Vector(
+          Vector(1, 2, 3),
+          Vector(2, 3, 4),
+          Vector(3, 4, 5),
         )
       }
       "empties" >> {
-        "window = 0" >>{ Stream(1, 2, 3).window(0).toVector.run === Vector() }
-        "window = 1" >>{ Stream(1, 2, 3).window(1).toVector.run === (1 to 3).map(Queue(_)) }
-        "size = 0"   >>{ Stream.empty.window(3).toVector.run === Vector[Queue[?]]() }
+        "window = 0" >>{ Stream(1, 2, 3).window(0).toVector.run.map(_.toVector) === Vector() }
+        "window = 1" >>{ Stream(1, 2, 3).window(1).toVector.run.map(_.toVector) === (1 to 3).map(Vector(_)) }
+        "size = 0"   >>{ Stream.empty.window(3).toVector.run.map(_.toVector) === Vector[Vector[?]]() }
       }
     }
 
@@ -118,12 +119,12 @@ class BasicTests extends Specification:
     }
 
     "split" >> {
-      "inner" >>{ Stream.from("abc,def,,ghi").split(',').toVector.run.map(_.mkString) === Vector("abc", "def", "", "ghi") }
-      "outer" >>{ Stream.from(",abc,def,").split(',').toVector.run.map(_.mkString) === Vector("", "abc", "def", "") }
+      "inner" >>{ Stream.from("abc,def,,ghi").split(',').toVector.run.map(_.iterator.mkString) === Vector("abc", "def", "", "ghi") }
+      "outer" >>{ Stream.from(",abc,def,").split(',').toVector.run.map(_.iterator.mkString) === Vector("", "abc", "def", "") }
     }
     "splitWhere" >> {
-      "inner" >>{ Stream.from("abcDefGHi").splitWhere(Character.isUpperCase).toVector.run.map(_.mkString) === Vector("abc", "Def", "G", "Hi") }
-      "outer" >>{ Stream.from("AbcD").splitWhere(Character.isUpperCase).toVector.run.map(_.mkString) === Vector("", "Abc", "D") }
+      "inner" >>{ Stream.from("abcDefGHi").splitWhere(Character.isUpperCase).toVector.run.map(_.iterator.mkString) === Vector("abc", "Def", "G", "Hi") }
+      "outer" >>{ Stream.from("AbcD").splitWhere(Character.isUpperCase).toVector.run.map(_.iterator.mkString) === Vector("", "Abc", "D") }
     }
 
     "mergeSorted" >> {
@@ -138,15 +139,15 @@ class BasicTests extends Specification:
 
   "IO" >> {
     "merge" >>{
-      val aa = Stream.from(1 to 5 by 2).tapEff(_ => IO.sleep(100))
-      val bb = Stream.from(2 to 6 by 2).tapEff(_ => IO.sleep(100))
+      val aa = Stream.from(1 to 5 by 2).tapEachEff(_ => IO.sleep(100))
+      val bb = Stream.from(2 to 6 by 2).tapEachEff(_ => IO.sleep(100))
       val cc = Stream.emptyEff(IO.sleep(50)) ++ bb
       aa.merge(cc).toVector.runIO.get === (1 to 6)
     }
 
-    "tapEff" >>{
+    "tapEachEff" >>{
       AtomicVar(Vector.empty[Int]).flatMap: avar =>
-        val ss = Stream.from(1 to 3).tapEff(i => avar.modify(_ :+ i))
+        val ss = Stream.from(1 to 3).tapEachEff(i => avar.modify(_ :+ i))
         ss.toVector **! avar.get
       .runIO.get === (Vector(1, 2, 3), Vector(1, 2, 3))
     }

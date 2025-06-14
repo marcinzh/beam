@@ -1,6 +1,7 @@
 package beam
 import turbolift.{!!, Signature, Effect}
 import turbolift.Extensions._
+import turbolift.data.Chunk
 
 
 sealed trait PipeSignature[I, O, R] extends Signature:
@@ -13,6 +14,10 @@ trait PipeEffectExt[I, O, R] extends Effect[PipeSignature[I, O, R]] with PipeSig
   final override def accept: Option[I] !! this.type = perform(_.accept)
   final override def emit(value: O): Unit !! this.type = perform(_.emit(value))
   final override def exit(value: R): Nothing !! this.type = perform(_.exit(value))
+
+  final def emit1[O2](value: O2)(using ev: Chunk[O2] <:< O): Unit !! this.type = emit(ev(Chunk.singleton(value)))
+  final def emitOpt(value: Option[O]): Unit !! this.type = value.fold(!!.unit)(emit)
+  final def emitIfNonEmpty[O2](values: Chunk[O2])(using ev: Chunk[O2] <:< O): Unit !! this.type = !!.when(values.nonEmpty)(emit(ev(values)))
   final def exit(using ev: Unit =:= R): Nothing !! ThisEffect = exit(ev(()))
 
   final def acceptOrElse[A >: I, U <: this.type](value: => A): A !! U =
