@@ -61,7 +61,7 @@ lazy val examples = project
   .settings(libraryDependencies += Deps.turbolift_bindless)
   .dependsOn(core)
 
-//=================================================
+//-------------------------------------------------
 
 val cls = taskKey[Unit]("cls")
 cls := { print("\u001b[0m\u001b[2J\u001bc") }
@@ -70,6 +70,7 @@ lazy val testSettings = Seq(
   libraryDependencies += Deps.specs2_core,
   Test / parallelExecution := false,
 )
+
 
 ThisBuild / description := "Stream processing with algebraic effects and handlers"
 ThisBuild / organizationName := "marcinzh"
@@ -80,11 +81,9 @@ ThisBuild / versionScheme := Some("semver-spec")
 ThisBuild / pomIncludeRepository := { _ => false }
 ThisBuild / publishMavenStyle := true
 ThisBuild / publishTo := {
-  val nexus = "https://s01.oss.sonatype.org/"
-  isSnapshot.value match {
-    case true => Some("snapshots" at nexus + "content/repositories/snapshots")
-    case false => Some("releases" at nexus + "service/local/staging/deploy/maven2")
-  }
+  val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+  if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
+  else localStaging.value
 }
 ThisBuild / pomExtra := (
   <developers>
