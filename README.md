@@ -2,16 +2,13 @@
 
 # Beam
 
-Purely functional streams, implemented with algebraic effects and handlers.
+Purely functional streams for Scala 3. &nbsp; 
 
+- Implemented with algebraic effects and handlers, provided by [Turbolift](https://marcinzh.github.io/turbolift/).
+- The API of `Stream` type is inspired by [FS2](https://github.com/typelevel/fs2) and [ZIO](https://zio.dev/reference/stream/).
+- The use of algebraic effects and handlers for implementing streams is inspired by [Stream](https://share.unison-lang.org/@unison/base/code/releases/3.34.0/latest/types/data/Stream) from [Unison](https://www.unison-lang.org/) language.
 
-&nbsp;
-
-- ⚗️ 🔬 🧪 &nbsp; 𝑷𝑹𝑶𝑻𝑶𝑻𝒀𝑷𝑬 &nbsp;   🚧 WIP 🚧
-- Uses Scala 3.
-- Uses [Turbolift](https://marcinzh.github.io/turbolift/) as effect system.
-- Inspired by [Stream](https://share.unison-lang.org/@unison/base/code/releases/3.34.0/latest/types/data/Stream) from [Unison](https://www.unison-lang.org/) language.
-
+🚧 WIP 🚧
 &nbsp;
 
 # Examples
