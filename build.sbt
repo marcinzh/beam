@@ -1,7 +1,7 @@
 val ScalaLTS = "3.3.6"
-val ScalaNext = "3.7.0"
+val ScalaNext = "3.7.2"
 ThisBuild / organization := "io.github.marcinzh"
-ThisBuild / version := "0.16.0"
+ThisBuild / version := "0.18.0"
 ThisBuild / scalaVersion := ScalaLTS
 ThisBuild / crossScalaVersions := Seq(ScalaLTS, ScalaNext)
 ThisBuild / watchBeforeCommand := Watch.clearScreen
@@ -31,7 +31,7 @@ ThisBuild / publish / skip := (scalaVersion.value != ScalaLTS)
 
 
 val Deps = {
-  val tur_v = "0.114.0"
+  val tur_v = "0.118.0"
   object deps {
     val specs2_core = "org.specs2" %% "specs2-core" % "5.4.0" % "test"
     val turbolift_core = "io.github.marcinzh" %% "turbolift-core" % tur_v

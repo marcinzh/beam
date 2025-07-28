@@ -21,7 +21,7 @@ Runnable with [`scala-cli`](https://scala-cli.virtuslab.org/).
 ```scala
 //> using scala "3.3.5"
 //> using dep "io.github.marcinzh::beam-core:0.16.0"
-//> using dep "io.github.marcinzh::turbolift-bindless:0.114.0"
+//> using dep "io.github.marcinzh::turbolift-bindless:0.116.0"
 package examples
 import turbolift.!!
 import turbolift.effects.Console

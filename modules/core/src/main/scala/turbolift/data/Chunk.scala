@@ -4,7 +4,6 @@ import scala.util.control.Breaks
 import turbolift.!!
 import turbolift.Extensions._
 import turbolift.data.Utils._
-import turbolift.data.MissingExtensions._
 import Chunk.{Empty, Singleton, Compact, Foreign, Slice, Concat}
 
 
